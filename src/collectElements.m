@@ -3,7 +3,9 @@ function els = collectElements(startSys, depth)
 %
 %   els = collectElements(startSys, depth) searches the model or subsystem
 %   STARTSYS down to DEPTH (1 = this level only, inf = whole tree), looking
-%   under masks and into all variants. Everything SMOKE transforms is derived
+%   under masks, into all variants, and into library links. Simulink refuses
+%   most changes inside locked links; those then appear in the report
+%   instead of being silently left out. Everything SMOKE transforms is derived
 %   from this one collection, so the scope is enforced in a single place.
 %
 %   els.start        handle of the scope root
@@ -15,7 +17,7 @@ function els = collectElements(startSys, depth)
 %   els.lines        line handles
 %   els.annotations  annotation handles
 
-    common = {'LookUnderMasks', 'all', 'MatchFilter', @Simulink.match.allVariants};
+    common = {'LookUnderMasks', 'all', 'FollowLinks', 'on', 'MatchFilter', @Simulink.match.allVariants};
     start = get_param(startSys, 'Handle');
 
     blocks = find_system(start, 'SearchDepth', depth, common{:}, 'Type', 'Block');

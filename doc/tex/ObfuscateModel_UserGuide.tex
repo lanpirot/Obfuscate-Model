@@ -151,7 +151,7 @@ Directly below the model's name, you can choose the scope of obfuscation and san
 \subsubsection{Top Checkboxes}
 \begin{itemize}
 	\item Model References -- The use of a \href{https://www.mathworks.com/help/simulink/slref/model.html}{model} block introduces a reference to another model. This option resets all model reference blocks so that they no longer point to other models. \emph{Note: This may impact the model functionality.}
-	\item Recurse into Model References -- This check-box will apply all changes chosen in Sections~\ref{lbl:leftside}, and \ref{lbl:rightside} inside of any \href{https://de.mathworks.com/help/simulink/model-reference.html}{referenced models}.
+	\item Recurse into Model References -- This check-box will apply all changes chosen in Sections~\ref{lbl:leftside}, and \ref{lbl:rightside} inside of any \href{https://de.mathworks.com/help/simulink/model-reference.html}{referenced models}. The referenced models are transformed in memory and left open and unsaved: save each of them explicitly (or use \cmd{save\_system(model, 'SaveDirtyReferencedModels', 'on')}) if the transformed versions shall be kept, or close them without saving to keep the originals.
 	\item Library Links -- Library \href{https://www.mathworks.com/help/simulink/ug/creating-and-working-with-linked-blocks.html}{links} can be used in a model to reference blocks that reside in other libraries. This option removes (or ``breaks") all library links so that blocks are stored directly in the model instead of the library. This means that the model is no longer dependant on external libraries.
 \end{itemize}
 
@@ -163,11 +163,11 @@ Here, functionality of the model will be removed, either inside of masks, block 
 	\item Block Callbacks -- Blocks may have \href{https://www.mathworks.com/help/simulink/ug/block-callbacks.html}{callbacks}, that are called on events, like moving them, saving the model etc. They can range from simple (e.g. is another block still present?) to complex.
 	\item Dialog Parameters -- Blocks can have all kinds of \href{https://www.mathworks.com/help/simulink/slref/block-specific-parameters.html}{parameters} set. Activate this option to reset them to their default values. This means dialog parameters are a way to store constants in a model.
 	\item Constants -- Reset the values of all \href{https://www.mathworks.com/help/simulink/slref/constant.html}{constants} (numbers, variables, and expressions) to \cmd{-17}. This odd value is chosen on purpose: a reset to 0 or 1 often lands on the value the model already had and would change nothing. A constant that already is \cmd{-17} becomes \cmd{-19}. The same rule applies to numeric Dialog Parameters.
-	\item Functions -- Remove all MATLAB functions from \href{https://www.mathworks.com/help/simulink/ug/what-is-a-matlab-function-block.html}{MATLAB function blocks}. Inside of a function block, arbitrarily complex functions may be hidden.
+	\item Functions -- Replace the code of all \href{https://www.mathworks.com/help/simulink/ug/what-is-a-matlab-function-block.html}{MATLAB function blocks} by a stub with the same inputs and outputs that sets every output to \cmd{-17}. Inside of a function block, arbitrarily complex functions may be hidden.
 	\item Simulink Function Arguments -- A \simfunc can have inputs and outputs using \argin and \argout blocks. This option renames the \param{argument name} of \argin and \argout blocks to be generic (e.g., u1 for an input, y1 for an output).
 	\item Implementation -- Beware: this removes \textit{everything} within the currently selected scope. The model structure will be affected by this.
 	
-	\item Stateflow -- These options rename the various named \href{https://www.mathworks.com/help/stateflow/ug/overview-of-stateflow-objects.html}{Stateflow elements} to have generic names. Currently charts, inputs, outputs, events, boxes, states, and functions are renamed. Transition labels are shortened to unrecognizable stubs.
+	\item Stateflow -- These options rename the various named \href{https://www.mathworks.com/help/stateflow/ug/overview-of-stateflow-objects.html}{Stateflow elements} to have generic names. Currently charts, all chart data (inputs, outputs, local data, parameters, constants), messages, events, boxes, states, and functions are renamed. Transition labels are shortened to unrecognizable stubs.
 \end{itemize}
 
 
@@ -221,7 +221,7 @@ The options in the \emph{Right Panel} are of optical nature, only. Use this for 
 \Simulink refuses some changes, e.g., on blocks inside locked library links, in read-only subsystems, on blocks that cannot be resized, or for parameters whose reset would add or remove ports. \toolname never aborts because of such an element: it skips it, continues with the next one, and prints a summary in the \Matlab Command Window at the end. The command \cmd{t = smokeLog('report')} returns a table with one row per skipped element (transformation, element path, parameter, and the \Simulink error). All elements listed there are still in their original state and must be inspected by hand before the model is shared.
 
 \subsection{Scripting}
-\toolname can also be called from scripts, e.g., to anonymize many models in batch mode: \cmd{SMOKE(model)} applies all transformations that are pre-selected in the GUI; \cmd{SMOKE(model, 'removeannotations', 1, 'renameblocks', 1)} applies only the given ones. See \cmd{help SMOKE} for all option names.
+\toolname can also be called from scripts, e.g., to anonymize many models in batch mode: \cmd{SMOKE(model)} applies all transformations that are pre-selected in the GUI; \cmd{SMOKE(model, 'renameblocks', 0)} all but the given ones; \cmd{SMOKE(model, 'all', 0, 'removeannotations', 1)} only the given ones. See \cmd{help SMOKE} for all option names.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Example

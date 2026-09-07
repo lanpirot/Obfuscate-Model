@@ -28,6 +28,9 @@ function test_basics()
 
     report = SMOKE(name, allBut('squashSubsystems'));
     structAfter = structure(name);
+    mlf = find_system(name, 'LookUnderMasks', 'all', 'SFBlockType', 'MATLAB Function');
+    cfg = get_param(mlf{1}, 'MATLABFunctionConfiguration');
+    failures = failures + check(startsWith(cfg.FunctionScript, 'function') && contains(cfg.FunctionScript, '= -17'), 'MATLAB Function replaced by stub');
     save_system(name, [name '_out.mdl']); % note: renames the loaded model
     after = fileread([name '_out.mdl']);
     bdclose all
@@ -100,7 +103,8 @@ function s = allSecrets()
         x = suffix{1};
         s = [s, {['SecretBlock' x], ['SecretSignal' x], ['SecretConst' x], ['SecretTag' x], ...
             ['SecretStore' x], ['SecretNote' x], ['SecretDescription' x], ['SecretState' x], ...
-            ['SecretChart' x], ['secretMaskParam' x], ['secretCallback' x], ['secretFcnBody' x]}]; %#ok<AGROW>
+            ['SecretChart' x], ['secretMaskParam' x], ['secretCallback' x], ['secretFcnBody' x], ...
+            ['SecretLocal' x], ['SecretBus' x]}]; %#ok<AGROW>
     end
     s = [s, {'SecretSimFcn', 'secretArg', 'SecretCreator'}];
 end
@@ -187,6 +191,13 @@ function fill(sub, x)
     st = Stateflow.State(chart);
     st.Name = ['SecretState' x];
     st.Position = [10 10 80 60];
+    d = Stateflow.Data(chart);
+    d.Name = ['SecretLocal' x];
+    d.Scope = 'Local';
+    % custom data type on an outport
+    add_block('built-in/Outport', [sub '/OutBus' x], 'OutDataTypeStr', ['Bus: SecretBus' x]);
+    add_block('built-in/Ground', [sub '/G' x]);
+    add_line(sub, ['G' x '/1'], ['OutBus' x '/1']);
 end
 
 function s = structure(name)

@@ -20,7 +20,7 @@ Remove all sensitive IP from models with SMOKE!
 
 For more detailed installation and usage instructions, please refer to the [User Guide](doc/SMOKE_UserGuide.pdf).
 
-**Scripting:** `SMOKE(model)` applies all default transformations; `SMOKE(model, 'removeannotations', 1, 'renameblocks', 1)` applies only the listed ones (see `help SMOKE` for all option names).
+**Scripting:** `SMOKE(model)` applies all default transformations; `SMOKE(model, 'renameblocks', 0)` all but one; `SMOKE(model, 'all', 0, 'removeannotations', 1, 'renameblocks', 1)` only the listed ones (see `help SMOKE` for all option names).
 
 ## What SMOKE could not change
 Simulink refuses some changes (blocks inside locked library links, read-only subsystems, blocks that cannot be resized, parameters whose reset would add or remove ports, ...). SMOKE never aborts because of such an element: it skips it, continues, and prints a summary at the end. Inspect the skipped elements with

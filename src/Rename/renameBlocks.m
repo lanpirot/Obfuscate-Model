@@ -1,49 +1,48 @@
-function renameBlocks(blks)
-% RENAMEBLOCKS Change the 'Name' parameter to a generic name based on the block type.
-    
-    
-    
-    % Get more accurate block types for Stateflow elements
-    blks_type = get_param(blks, 'BlockType');
-    if ~iscell(blks_type)
-        blks_type = {blks_type};
+function renameBlocks(blocks)
+% RENAMEBLOCKS Rename all BLOCKS to '<block type><number>' and hide the names.
+
+    if isempty(blocks)
+        return
     end
-    for h = 1:length(blks_type)
-       if strcmp(blks_type{h}, 'SubSystem')
-            
-           sfBlockType = '';
-           try 
-               sfBlockType = get_param(blks(h), 'SFBlockType');
-           catch ME
-                if ~strcmp(ME.identifier, '')
-                    rethrow(ME)
-                end
-           end
-            
-           if ~isempty(sfBlockType) && ~strcmpi(sfBlockType, 'NONE')
-                % Stateflow element
-               blks_type{h} = strrep(sfBlockType, ' ', '');
-           else
-               % Subsystem
-               blks_type{h} = getSubsystemType(blks(h));
-           end   
-       end
+    types = get_param(blocks, 'BlockType');
+    if ~iscell(types)
+        types = {types};
     end
-    
-    % Rename
+    for h = 1:numel(blocks)
+        if ~strcmp(types{h}, 'SubSystem')
+            continue
+        end
+        try
+            sfBlockType = get_param(blocks(h), 'SFBlockType');
+        catch
+            sfBlockType = '';
+        end
+        if ~isempty(sfBlockType) && ~strcmpi(sfBlockType, 'NONE')
+            types{h} = strrep(sfBlockType, ' ', '');
+        else
+            try
+                types{h} = getSubsystemType(blocks(h));
+            catch
+                types{h} = 'Subsystem';
+            end
+        end
+    end
+
     suffix = 1;
-    for j = 1:length(blks)
-        while 1
+    for j = 1:numel(blocks)
+        b = blocks(j);
+        for attempt = 1:50
             suffix = suffix + 1;
             try
-                set_param(blks(j), 'Name', [blks_type{j} num2str(suffix)]);
-                set_param(blks(j), 'ShowName', 'off');
+                set_param(b, 'Name', [types{j} num2str(suffix)]);
+                set_param(b, 'ShowName', 'off');
                 break
             catch ME
-                if strcmp(ME.identifier, 'Simulink:Libraries:SetParamDeniedForBlockInsideReadOnlySubsystem')
+                clash = contains(lower(ME.message), {'exist', 'unique', 'already', 'in use', 'duplicate'});
+                if ~clash || attempt == 50
+                    smokeLog('skip', 'renameBlocks', b, ME);
                     break
                 end
-                %try again, until an unblocked name is found
             end
         end
     end

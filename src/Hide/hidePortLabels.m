@@ -1,25 +1,13 @@
-function hidePortLabels(subs)
-% HIDEPORTLABELS Make port labels of Subsystems visible or hidden.
-%
-%   Inputs:
-%       sys     Name of Simulink model or subsystem.
-%       show    Whether to hide the port label (1), or not (0). [Default is 1]
-%
-%   Outputs:
-%       N/A
-%
-%   Side Effects:
-%       Shows or hides the port label.
-    
-    
-
-    for i = 1:length(subs)
+function hidePortLabels(subsystems)
+% HIDEPORTLABELS Hide the port labels shown on all SUBSYSTEMS.
+    for i = 1:numel(subsystems)
+        s = subsystems(i);
         try
-            set_param(subs{i}, 'ShowPortLabels', 'none');
-        catch ME %may cause 'Failed to evaluate mask initialization commands.'
-            if ~ismember(ME.identifier, {'Simulink:Libraries:CannotChangeLinkedBlkParam' 'Simulink:Masking:Bad_Init_Commands' 'Simulink:Libraries:FailedToLoadLibraryForBlock' 'Simulink:Libraries:MissingBlockInLib' 'Simulink:blocks:SubsysErrFcnMsg' 'Simulink:blocks:ConfigSubInvChoice' 'Simulink:Libraries:RefViolation' 'Simulink:Libraries:SetParamDeniedForBlockInsideReadOnlySubsystem'})
-                rethrow(ME)
+            if ~strcmpi(get_param(s, 'ShowPortLabels'), 'none')
+                set_param(s, 'ShowPortLabels', 'none');
             end
+        catch ME
+            smokeLog('skip', 'hidePortLabels', s, ME);
         end
     end
 end

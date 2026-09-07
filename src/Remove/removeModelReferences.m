@@ -1,26 +1,15 @@
 function removeModelReferences(blocks)
-% REMOVEMODELREFERENCES Remove references to other models.
-
-
-    for i = 1:length(blocks)
-        
-        if strcmp(get_param(blocks(i), 'BlockType'), 'ModelReference')
-            try
-                % Reset parameter values
-                set_param(blocks(i), 'ModelNameDialog', '<Enter Model Name>');
-                set_param(blocks(i), 'ModelFile', '<Enter Model Name>');
-            catch ME
-                if ~strcmp(ME.identifier, '')
-                    rethrow(ME)
-                end
+% REMOVEMODELREFERENCES Make all Model blocks among BLOCKS point to no model.
+    placeholder = '<Enter Model Name>';
+    for i = 1:numel(blocks)
+        b = blocks(i);
+        try
+            if ~strcmp(get_param(b, 'BlockType'), 'ModelReference')
+                continue
             end
-            try
-                set_param(blocks(i), 'ModelName', '<Enter Model Name>');
-            catch ME
-                if ~strcmp(ME.identifier, '')
-                    rethrow(ME)
-                end
-            end
+            set_param(b, 'ModelNameDialog', placeholder);
+        catch ME
+            smokeLog('skip', 'removeModelReferences', b, ME);
         end
     end
 end

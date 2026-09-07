@@ -1,18 +1,25 @@
-function unlockModel(startSys, blocks)
-    %if strcmp(get_param(sys, 'Lock'), 'on')
-    %    warning('Model must be unlocked.');
-    %    %set_param(sys, 'Lock', 'off')
-    %    return
-    %end
-    try
-        set_param(startSys, 'Lock', 'off');
+function unlockModel(startSys, subsystems)
+% UNLOCKMODEL Unlock the model of STARTSYS (libraries are locked by default)
+% and make STARTSYS (if it is a subsystem) and all SUBSYSTEMS writable.
+    if strcmp(get_param(startSys, 'Type'), 'block')
+        subsystems = [startSys; subsystems(:)];
     end
-    for j=1:length(blocks)
-        try
-            set_param(blocks(j), 'Lock', 'off');
+    root = bdroot(startSys);
+    try
+        if strcmp(get_param(root, 'BlockDiagramType'), 'library')
+            set_param(root, 'Lock', 'off');
         end
+    catch ME
+        smokeLog('skip', 'unlockModel', root, ME);
+    end
+    for i = 1:numel(subsystems)
+        s = subsystems(i);
         try
-            set_param(blocks(j), 'Permissions', 'ReadWrite')
+            if ~strcmp(get_param(s, 'Permissions'), 'ReadWrite')
+                set_param(s, 'Permissions', 'ReadWrite')
+            end
+        catch ME
+            smokeLog('skip', 'unlockModel', s, ME);
         end
     end
 end

@@ -1,5 +1,12 @@
 # How to Run Replication
 
+## Quick Test
+`test_basics.m` needs no external data: it generates a small model, runs SMOKE on it, and checks the result (removal, scope, structure). Run it after every change to SMOKE:
+```
+matlab -nodisplay -batch "addpath(genpath('<SMOKE>/src')); addpath(genpath('<Simulink-Utility>')); test_basics"
+```
+Use `-nodisplay` (or unset `DISPLAY`) for all test runs: Simulink then prints dialogs (broken callbacks, missing libraries, mask errors) to the command window instead of opening windows for each of them.
+
 ## Results
 The raw results will be saved to `results_scalability.csv`. We also provide a `SMOKE.xlsx` file with some further analysis used in our publication.
 

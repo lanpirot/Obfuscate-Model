@@ -1,26 +1,8 @@
-function renameGotoTags(fromsOrig, gotos)
-% RENAMEGOTOTAGS Give all goto/froms generic tags.
-% Should be run from the root to avoid overlapping names.
+function renameGotoTags(gotos, froms, startSys)
+% RENAMEGOTOTAGS Give all Goto/From tags generic names (GotoFrom1, ...).
+% Gotos and Froms that share a tag are renamed together, so that the model
+% keeps working. Tags that are also used outside the scope are kept,
+% otherwise the blocks inside would be cut off.
 
-    changedFroms = [];
-
-    for i = 1:length(gotos)
-        tag = get_param(gotos(i), 'GotoTag');
-        froms = fromsOrig(strcmp(get_param(fromsOrig, 'GotoTag'), tag));
-
-        % Change goto
-        set_param(gotos(i), 'GotoTag', ['GotoFrom' num2str(i)]);
-
-        % Change froms
-        for j = 1:length(froms)
-            set_param(froms(j), 'GotoTag', ['GotoFrom' num2str(i)]);
-            changedFroms = [changedFroms; froms(j)];
-        end
-    end
-
-    % Change dangling Froms
-    leftOver = setdiff(getfullname(fromsOrig), getfullname(changedFroms));
-    for k = 1:length(leftOver)
-         set_param(leftOver{k}, 'GotoTag', ['GotoFrom' num2str(k)]);
-    end
+    renameShared([gotos(:); froms(:)], 'GotoTag', 'GotoFrom', {'Goto', 'From'}, startSys, 'renameGotoTags');
 end

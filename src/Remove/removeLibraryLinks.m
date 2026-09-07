@@ -1,26 +1,21 @@
 function removeLibraryLinks(blocks)
-% REMOVELIBRARYLINKS Break library links. Links can be used to reference custom
-% blocks or other libraries.
+% REMOVELIBRARYLINKS Break the library links of all linked BLOCKS, so that the
+% blocks are stored in the model itself. Simscape blocks are left alone.
 
-    simscapestr = 'Simscape';
-    lsimscapestr = length(simscapestr);
-    for i = 1:length(blocks)
-
+    for i = 1:numel(blocks)
+        b = blocks(i);
         try
-            bt = get_param(blocks(i), 'blocktype');
-            portHandles = get_param(blocks(i), 'porthandles');
-            if strcmp(bt(1:min(lsimscapestr, length(bt))), simscapestr) || ~isempty(portHandles.LConn) || ~isempty(portHandles.RConn)
-                % do not interfere with Simscape blocks
+            if strcmp(get_param(b, 'StaticLinkStatus'), 'none')
                 continue
             end
-            % Reset parameter values
-            set_param(blocks(i), 'LinkStatus', 'none');
-            set_param(blocks(i), 'ReferenceBlock', '');
-            set_param(blocks(i), 'SourceBlock', '');
-        catch ME
-            if ~ismember(ME.identifier, {'Simulink:Commands:ParamUnknown' 'Simulink:blocks:BlkParamLinkStatusOnNonReference' 'Simulink:Libraries:MissingSourceBlock' 'Simulink:blocks:SubsysReadProtectErr' 'Simulink:blocks:SubsysErrFcnMsgInvCB' 'Simulink:Commands:InvSimulinkObjHandle' 'Simulink:Libraries:SetParamDeniedForBlockInsideReadOnlySubsystem' 'Simulink:blocks:SubsysErrFcnMsg' 'Simulink:blocks:SubsysErrFcnMsgInvCBRetVal'})
-                rethrow(ME)
+            ports = get_param(b, 'PortHandles');
+            if startsWith(get_param(b, 'BlockType'), 'Simscape') || ~isempty(ports.LConn) || ~isempty(ports.RConn)
+                smokeLog('note', 'removeLibraryLinks', b, 'Simscape block, link kept');
+                continue
             end
+            set_param(b, 'LinkStatus', 'none');
+        catch ME
+            smokeLog('skip', 'removeLibraryLinks', b, ME);
         end
     end
 end

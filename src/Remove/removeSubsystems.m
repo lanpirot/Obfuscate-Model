@@ -1,12 +1,12 @@
 function removeSubsystems(subsystems)
-    subsystems = get_param(subsystems, 'Handle');
-    for i=1:length(subsystems)
+% REMOVESUBSYSTEMS Expand all SUBSYSTEMS into their parents ("squash"), so
+% that their content is shown flatly. Subsystems that Simulink cannot expand
+% (enabled, triggered, masked, variant, linked, ...) are kept and recorded.
+    for i = 1:numel(subsystems)
         try
-            Simulink.BlockDiagram.expandSubsystem(subsystems{i});
+            Simulink.BlockDiagram.expandSubsystem(subsystems(i));
         catch ME
-            if ~ismember(ME.identifier, {'Simulink:ExpandSubsystem:EnabledSubsystem' 'Simulink:ExpandSubsystem:NotSubsystem' 'Simulink:ExpandSubsystem:SimulationCallbacks' 'Simulink:ExpandSubsystem:Masked' 'Simulink:ExpandSubsystem:HiddenContents' 'Simulink:ExpandSubsystem:VariantSubsystem' 'Simulink:ExpandSubsystem:LibraryLink' 'Simulink:ExpandSubsystem:ConfigurableSubsystem' 'Simulink:ExpandSubsystem:LockedLibraryLink'})
-                rethrow(ME)
-            end
+            smokeLog('skip', 'removeSubsystems', subsystems(i), ME);
         end
     end
 end

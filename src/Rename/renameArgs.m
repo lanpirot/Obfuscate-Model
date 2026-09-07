@@ -1,45 +1,39 @@
-function renameArgs(allArgIns, allArgOuts)
-% RENAMEARGS Give all Simulink Function arguments generic names.
+function renameArgs(argIns, argOuts)
+% RENAMEARGS Give all Simulink Function arguments generic names (u1, u2, ...
+% for inputs, y1, y2, ... for outputs) and update the Function Callers.
+    renameGroup(argIns, 'u');
+    renameGroup(argOuts, 'y');
+end
 
-    parentSys = gcs;
-    % Argument Inputs
-    for i = 1:length(allArgIns)
-        changed = false;
-        num = 1;
-        simFcn = get_param(allArgIns(i), 'Parent');
-        callers = findCallers(simFcn, parentSys);
-        while ~changed
+function renameGroup(args, prefix)
+    for i = 1:numel(args)
+        a = args(i);
+        try
+            simFcn = get_param(a, 'Parent');
+            callers = findCallers(simFcn);
+        catch ME
+            smokeLog('skip', 'renameArgs', a, ME);
+            continue
+        end
+        renamed = false;
+        for num = 1:100
             try
-                newName = ['u' num2str(num)];
-                set_param(allArgIns(i), 'ArgumentName', newName);
-                changed = true;
-            catch
-                num = num + 1;
+                set_param(a, 'ArgumentName', sprintf('%s%d', prefix, num));
+                renamed = true;
+                break
+            catch ME
+                if ~isNameClash(ME)
+                    smokeLog('skip', 'renameArgs', a, ME);
+                    break
+                end
             end
         end
-        % Update the function callers that use the argument
-        if ~isempty(callers)
-            updateCallers(simFcn, callers, [], parentSys);
+        if renamed && ~isempty(callers)
+            updateCallers(simFcn, callers, []);
         end
     end
+end
 
-    % Argument Outputs
-    for j = 1:length(allArgOuts)
-        changed = false;
-        num = 1;
-        simFcn = get_param(allArgOuts(j), 'Parent');
-        callers = findCallers(simFcn, parentSys);
-        while ~changed
-            try
-                newName = ['y' num2str(num)];
-                set_param(allArgOuts(j), 'ArgumentName', newName);
-                changed = true;
-            catch
-                num = num + 1;
-            end
-        end
-        if ~isempty(callers)
-            updateCallers(simFcn, callers, [], parentSys);
-        end
-    end
+function tf = isNameClash(ME)
+    tf = contains(lower(ME.message), {'exist', 'unique', 'already', 'in use', 'duplicate'});
 end

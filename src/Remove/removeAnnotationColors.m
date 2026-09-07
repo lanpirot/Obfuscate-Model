@@ -1,15 +1,16 @@
-function removeAnnotationColors(ann)
-% REMOVEANNOTATIONCOLORS Remove all annotation coloring from the model.
-
-    for i = 1:length(ann)
+function removeAnnotationColors(annotations)
+% REMOVEANNOTATIONCOLORS Reset the colors of all ANNOTATIONS to the defaults.
+    for i = 1:numel(annotations)
+        a = annotations(i);
         try
-            continue
-            set_param(ann(i), 'ForegroundColor', 'black');
-            set_param(ann(i), 'BackgroundColor', 'white');
-        catch ME %in unlockable Subsystems, these changes are not supported
-            if ~strcmp(ME.identifier, {'Simulink:Libraries:RefViolation', 'MATLAB:hg:udd_interface:CannotDelete' 'SL_SERVICES:utils:STD_EXCEPTION'})
-                rethrow(ME)
+            if ~strcmp(get_param(a, 'ForegroundColor'), 'black')
+                set_param(a, 'ForegroundColor', 'black');
             end
+            if ~strcmp(get_param(a, 'BackgroundColor'), 'white')
+                set_param(a, 'BackgroundColor', 'white');
+            end
+        catch ME
+            smokeLog('skip', 'removeAnnotationColors', a, ME);
         end
     end
 end

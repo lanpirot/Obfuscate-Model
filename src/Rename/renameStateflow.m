@@ -1,142 +1,119 @@
-function renameStateflow(startSys, varargin)
-% RENAMESTATEFLOW Rename chart blocks and their data to generic names.
-    sys = bdroot(startSys);
+function renameStateflow(startSys, depth, opt)
+% RENAMESTATEFLOW Rename the Stateflow objects of all charts inside STARTSYS
+% (down to DEPTH levels) to generic names. OPT selects what to rename:
+% sfcharts, sfports, sfevents, sfboxes, sfstates, sffunctions, sflabels.
 
-    sys = get_param(sys, 'handle');
-    % If not args are given, run all checks. 
-    % If some args are given, only run those enabled.
-    if isempty(varargin)
-        default = 1;
-    else
-        default = 0;
+    scopePath = getfullname(startSys);
+    model = sfroot().find('-isa', 'Simulink.BlockDiagram', '-and', 'Name', bdroot(scopePath));
+    if isempty(model)
+        return
     end
-
-    sfcharts = getInput('sfcharts', varargin, default);
-    sfports  = getInput('sfports', varargin, default);
-    sfevents = getInput('sfevents', varargin, default);
-    sfboxes  = getInput('sfboxes',  varargin, default);
-    sfstates = getInput('sfstates', varargin, default);
-    sffunctions = getInput('sffunctions', varargin, default);
-    sflabels = getInput('sflabels', varargin, default);
-    
-
-    rt = sfroot;
-    model = rt.find('-isa', 'Simulink.BlockDiagram', '-and', 'Name', bdroot(get_param(sys, 'Name')));
     charts = model.find('-isa', 'Stateflow.Chart');
 
     for i = 1:length(charts)
         c = charts(i);
-
-        if ~startsWith(c.Path, getfullname(startSys))
+        if ~inScope(c.Path, scopePath, depth)
             continue
         end
 
-        % Rename charts
-        if sfcharts
-            c.Name = ['StateflowChart' num2str(i)];
-        end
-        
-        % Rename ports
-        if sfports
-            input_data = c.find('-isa', 'Stateflow.Data', 'Scope', 'Input');
-            for j = 1:length(input_data)
-                input_data(j).Name = ['Input' num2str(j)];
-            end
-
-            output_data = c.find('-isa', 'Stateflow.Data', 'Scope', 'Output');
-            for k = 1:length(output_data)
-                output_data(k).Name = ['Output' num2str(k)];
+        if opt.sfcharts
+            try
+                c.Name = ['StateflowChart' num2str(i)];
+            catch ME
+                smokeLog('skip', 'renameStateflow', c, ME, 'chart name');
             end
         end
 
-        % Rename events
-        if sfevents
-            events = c.find('-isa', 'Stateflow.Event');
-            for l = 1:length(events)
-                events(l).Name = ['Event' num2str(l)];
-            end
+        if opt.sfports
+            renameAll(c.find('-isa', 'Stateflow.Data', 'Scope', 'Input'), 'Input');
+            renameAll(c.find('-isa', 'Stateflow.Data', 'Scope', 'Output'), 'Output');
         end
-        
-        % Rename boxes
-        if sfboxes
+
+        if opt.sfevents
+            renameAll(c.find('-isa', 'Stateflow.Event'), 'Event');
+        end
+
+        if opt.sfboxes
+            renameAll(c.find('-isa', 'Stateflow.Box'), 'Box');
+        end
+
+        if opt.sfstates
+            % grouped boxes protect their content; ungroup temporarily
             boxes = c.find('-isa', 'Stateflow.Box');
-            disp(boxes)
-            for n = 1:length(boxes)
-                boxes(n).Name = ['Box' num2str(n)];
+            grouped = arrayfun(@(b) b.IsGrouped, boxes);
+            for b = 1:numel(boxes)
+                try
+                    boxes(b).IsGrouped = 0;
+                catch
+                end
             end
-        end
-        
-        %% Rename states
-        % Save parameter because it needs to be turned off
-        if sfstates
-            boxes = c.find('-isa', 'Stateflow.Box');
-            grp = get(boxes, 'IsGrouped');
-
-            if numel(grp) > 1
-                isgrouped = cell2mat(grp);
-            else
-                isgrouped = grp;
-            end
-            set(boxes, 'IsGrouped', 0);
-
             states = c.find('-isa', 'Stateflow.State');
             for m = 1:length(states)
                 try
                     states(m).Name = ['State' num2str(m)];
                     states(m).LabelString = ['State' num2str(m)];
                 catch ME
-                    if ~ismember(ME.identifier, {'Stateflow:misc:CannotChangeStatesInGroupedState'})
-                        rethrow(ME)
-                    end
+                    smokeLog('skip', 'renameStateflow', states(m), ME, 'state');
                 end
             end
-
-            % Turn back on
-            for o = 1:length(boxes)
-                boxes(o).IsGrouped = isgrouped(o);
+            for b = 1:numel(boxes)
+                try
+                    boxes(b).IsGrouped = grouped(b);
+                catch
+                end
             end
         end
 
-        %% Rename functions
-        % Functions are used in transitions, etc. so its difficult to change
-        if sffunctions
-            sf_functions = [c.find('-isa', 'Stateflow.Function') ; c.find('-isa', 'Stateflow.SLFunction')];
-            for f = 1:length(sf_functions)
-                sf_functions(f).Name = ['function' num2str(f)];
-            end
+        if opt.sffunctions
+            renameAll([c.find('-isa', 'Stateflow.Function'); c.find('-isa', 'Stateflow.SLFunction')], 'function');
         end
 
-        %% Relabel transitions
-        if sflabels
-            sf_transitions = c.find('-isa', 'Stateflow.Transition');
-            for t = 1:length(sf_transitions)
-                %disp(sf_transitions(t).LabelString)
-                sf_transitions(t).LabelString = relabel(sf_transitions(t).LabelString);
-                %disp(relabel(sf_transitions(t).LabelString))
+        if opt.sflabels
+            transitions = c.find('-isa', 'Stateflow.Transition');
+            for t = 1:length(transitions)
+                try
+                    transitions(t).LabelString = relabel(transitions(t).LabelString);
+                catch ME
+                    smokeLog('skip', 'renameStateflow', transitions(t), ME, 'transition label');
+                end
             end
         end
     end
 end
 
-%remove IP information from labels
+function tf = inScope(path, scopePath, depth)
+    if strcmp(path, scopePath)
+        tf = true;
+    elseif startsWith(path, [scopePath '/'])
+        rest = path(length(scopePath) + 2:end);
+        tf = isinf(depth) || ~contains(rest, '/');
+    else
+        tf = false;
+    end
+end
+
+function renameAll(objects, prefix)
+    for j = 1:length(objects)
+        try
+            objects(j).Name = [prefix num2str(j)];
+        catch ME
+            smokeLog('skip', 'renameStateflow', objects(j), ME, prefix);
+        end
+    end
+end
+
 function label = relabel(label)
-    % Split the string
+% Shorten identifiers in a transition label to two characters and numbers to 0.
     tokens = regexp(label, '[\(\)\[\],<>=\s]+', 'split');
     for i = 1:length(tokens)
-        token = tokens{i};
-        token_before = token;
-        token = strrep(token,'_','');
-        token = strrep(token,'-','');
-        token = strrep(token,'{','');
-        token = strrep(token,'}','');
-        token = strrep(token,'.','');
-        token = strrep(token,';','');
-        token = strrep(token,'~','');
-
+        token = regexprep(tokens{i}, '[_\-{}.;~]', '');
+        if isempty(token)
+            continue
+        end
         if ~isnan(str2double(token))
-            label = strrep(label, token_before, char(string(0)));
+            label = strrep(label, tokens{i}, '0');
         elseif all(isstrprop(token, 'alphanum')) && strlength(token) > 1
-            label = strrep(label, token_before, token_before(1:2));
+            label = strrep(label, tokens{i}, tokens{i}(1:2));
         end
     end
 end

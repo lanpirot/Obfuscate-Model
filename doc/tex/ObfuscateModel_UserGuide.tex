@@ -162,12 +162,12 @@ Here, functionality of the model will be removed, either inside of masks, block 
 	\item Masks -- Block \href{https://www.mathworks.com/help/simulink/ug/block-masks.html}{masks} are commonly used to customize the block appearance of custom blocks. This option removes the masks of all blocks. Masks may include special code, that is also removed.
 	\item Block Callbacks -- Blocks may have \href{https://www.mathworks.com/help/simulink/ug/block-callbacks.html}{callbacks}, that are called on events, like moving them, saving the model etc. They can range from simple (e.g. is another block still present?) to complex.
 	\item Dialog Parameters -- Blocks can have all kinds of \href{https://www.mathworks.com/help/simulink/slref/block-specific-parameters.html}{parameters} set. Activate this option to reset them to their default values. This means dialog parameters are a way to store constants in a model.
-	\item Constants -- Reset all \href{https://www.mathworks.com/help/simulink/slref/constant.html}{constants} to 1 values.
+	\item Constants -- Reset the values of all \href{https://www.mathworks.com/help/simulink/slref/constant.html}{constants} (numbers, variables, and expressions) to \cmd{-17}. This odd value is chosen on purpose: a reset to 0 or 1 often lands on the value the model already had and would change nothing. A constant that already is \cmd{-17} becomes \cmd{-19}. The same rule applies to numeric Dialog Parameters.
 	\item Functions -- Remove all MATLAB functions from \href{https://www.mathworks.com/help/simulink/ug/what-is-a-matlab-function-block.html}{MATLAB function blocks}. Inside of a function block, arbitrarily complex functions may be hidden.
 	\item Simulink Function Arguments -- A \simfunc can have inputs and outputs using \argin and \argout blocks. This option renames the \param{argument name} of \argin and \argout blocks to be generic (e.g., u1 for an input, y1 for an output).
 	\item Implementation -- Beware: this removes \textit{everything} within the currently selected scope. The model structure will be affected by this.
 	
-	\item Stateflow -- These options rename the various named \href{https://www.mathworks.com/help/stateflow/ug/overview-of-stateflow-objects.html}{Stateflow elements} to have generic names. Currently inputs, outputs, events, boxes, and states are renamed. Transitions are removed.
+	\item Stateflow -- These options rename the various named \href{https://www.mathworks.com/help/stateflow/ug/overview-of-stateflow-objects.html}{Stateflow elements} to have generic names. Currently charts, inputs, outputs, events, boxes, states, and functions are renamed. Transition labels are shortened to unrecognizable stubs.
 \end{itemize}
 
 
@@ -190,15 +190,13 @@ The options in the \emph{Right Panel} are of optical nature, only. Use this for 
 
 	\item Descriptions -- This options removes the \param{description} information of \href{https://www.mathworks.com/help/simulink/ug/signal-basics.html#bs9gzwp}{lines}, \href{https://www.mathworks.com/help/simulink/ug/block-properties-dialog-box.html}{blocks}, and annotations. 
 
-	\item Signal Names -- This option turns off \href{https://www.mathworks.com/help/simulink/ug/signal-label-propagation.html}{signal propagation}.
+	\item Signal Names -- This option removes the names of all signal lines and turns off \href{https://www.mathworks.com/help/simulink/ug/signal-label-propagation.html}{signal propagation}.
 
     \item Subsystem Content Preview -- This option turns off the \href{https://www.mathworks.com/help/simulink/ug/preview-content-of-hierarchical-items.html}{content preview} that is displayed in blocks such as subsystems.
 	
 	\item Subsystem Port Labels -- This option hides the port labels shown on blocks such as subsystems.
 	
 	\item Block Names -- Each block in a model has a \param{name} that is typically displayed underneath the block. This option renames all block names to a generic name based on the block type. For example, an \inport block will be renamed to Inport1. They are also hidden from view.
-
-	\item Signal Names – This option turns off \href{https://www.mathworks.com/help/simulink/ug/signal-label-propagation.html}{signal propagation}.
 
 	\item Data Store Memory -- A \DSM block has a \param{data store name}. This option renames all  \DSM blocks to be generic (\eg DataStore1) as well as all associated \DSR and \DSW blocks.
 
@@ -210,7 +208,7 @@ The options in the \emph{Right Panel} are of optical nature, only. Use this for 
 	
 	\item Colors -- These options remove the colours of blocks and annotations so that they revert to their default color.
 
-	\item Block Sisez -- All block sizes and shapes are reset to their default values.
+	\item Block Sizes -- All block sizes and shapes are reset to their default values.
 
 	\item Auto Positioning -- Simulink's auto positioning function is called. Each call to it may result in a different diagram!
 \end{itemize}
@@ -219,8 +217,11 @@ The options in the \emph{Right Panel} are of optical nature, only. Use this for 
 %---------------------------------------
 % What else does the tool do?
 %---------------------------------------
-%\subsection{Errors and Warnings}
-%Any errors or warnings during tool use will be visible in the \Matlab Command Window.
+\subsection{Elements \toolname Could Not Change}
+\Simulink refuses some changes, e.g., on blocks inside locked library links, in read-only subsystems, on blocks that cannot be resized, or for parameters whose reset would add or remove ports. \toolname never aborts because of such an element: it skips it, continues with the next one, and prints a summary in the \Matlab Command Window at the end. The command \cmd{t = smokeLog('report')} returns a table with one row per skipped element (transformation, element path, parameter, and the \Simulink error). All elements listed there are still in their original state and must be inspected by hand before the model is shared.
+
+\subsection{Scripting}
+\toolname can also be called from scripts, e.g., to anonymize many models in batch mode: \cmd{SMOKE(model)} applies all transformations that are pre-selected in the GUI; \cmd{SMOKE(model, 'removeannotations', 1, 'renameblocks', 1)} applies only the given ones. See \cmd{help SMOKE} for all option names.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Example

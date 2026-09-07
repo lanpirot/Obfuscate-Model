@@ -1,18 +1,14 @@
 function removeCustomDataTypes(inports)
-% REMOVECUSTOMDATATYPES Remove custom data types for inports.
-
-    %builtinTypes = [{'Inherit: auto'}, {'boolean'}, {'double'}, {'single'}, {'int8'}, {'uint8'}, {'int16'}, {'uint16'}, {'int32'}, {'uint32'}];
-    for i = 1:length(inports)
+% REMOVECUSTOMDATATYPES Reset the output data type of INPORTS to 'Inherit: auto'.
+% Custom data types often reveal bus objects and enumerations by name.
+    for i = 1:numel(inports)
+        b = inports(i);
         try
-            t = get_param(inports(i), 'OutDataTypeStr');
-            %if ~any(ismember(builtinTypes, t))
-            if ~strcmp(t, 'Inherit: auto')
-                set_param(inports(i), 'OutDataTypeStr', 'Inherit: auto');
+            if ~strcmp(get_param(b, 'OutDataTypeStr'), 'Inherit: auto')
+                set_param(b, 'OutDataTypeStr', 'Inherit: auto');
             end
         catch ME
-            if ~ismember(ME.identifier, {'Simulink:BusElPorts:CannotChangeAttributesBusObject'})
-                rethrow(ME)
-            end
+            smokeLog('skip', 'removeCustomDataTypes', b, ME);
         end
     end
 end

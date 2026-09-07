@@ -1,25 +1,24 @@
 function renameSimFcns(triggers)
-% RENAMESIMFCNS Rename Simulink Functions to generic names, and update callers.
-    % Triggers
-    parentSys = gcs;
-    global fcnNum;
-    if isempty(fcnNum)
-        fcnNum = 1;
-    end
-    for i = 1:length(triggers)
-        if strcmp(get_param(triggers(i), 'IsSimulinkFunction'), 'on')
-            simFcn = get_param(triggers(i), 'Parent');
-            callers = findCallers(simFcn, parentSys);
-            
-            newName = ['f' num2str(fcnNum)];
-            set_param(triggers(i), 'FunctionName', newName);
-            
-            fcnNum = fcnNum + 1;
-            
-            % Update the Simulink Function callers
-            if ~isempty(callers)
-                updateCallers(simFcn, callers, newName, parentSys)
+% RENAMESIMFCNS Rename all Simulink Functions (identified by their TRIGGERS)
+% to f1, f2, ... and update their Function Callers.
+    num = 0;
+    for i = 1:numel(triggers)
+        t = triggers(i);
+        try
+            if ~strcmp(get_param(t, 'IsSimulinkFunction'), 'on')
+                continue
             end
+            simFcn = get_param(t, 'Parent');
+            callers = findCallers(simFcn);
+            num = num + 1;
+            newName = sprintf('f%d', num);
+            set_param(t, 'FunctionName', newName);
+        catch ME
+            smokeLog('skip', 'renameSimFcns', t, ME);
+            continue
         end
-    end  
+        if ~isempty(callers)
+            updateCallers(simFcn, callers, newName)
+        end
+    end
 end

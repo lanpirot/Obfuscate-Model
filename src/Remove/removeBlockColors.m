@@ -1,13 +1,16 @@
-function removeBlockColors(allBlks)
-% REMOVEBLOCKCOLORS Remove all block coloring from the model.
-    for i = 1:length(allBlks)
+function removeBlockColors(blocks)
+% REMOVEBLOCKCOLORS Reset the colors of all BLOCKS to the defaults.
+    for i = 1:numel(blocks)
+        b = blocks(i);
         try
-            set_param(allBlks(i), 'ForegroundColor', 'black');
-            set_param(allBlks(i), 'BackgroundColor', 'white');
-        catch ME
-            if ~strcmp(ME.identifier, 'Simulink:Libraries:SetParamDeniedForBlockInsideReadOnlySubsystem')
-                rethrow(ME)
+            if ~strcmp(get_param(b, 'ForegroundColor'), 'black')
+                set_param(b, 'ForegroundColor', 'black');
             end
+            if ~strcmp(get_param(b, 'BackgroundColor'), 'white')
+                set_param(b, 'BackgroundColor', 'white');
+            end
+        catch ME
+            smokeLog('skip', 'removeBlockColors', b, ME);
         end
     end
 end

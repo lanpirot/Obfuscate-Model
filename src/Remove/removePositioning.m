@@ -1,37 +1,21 @@
-function removePositioning(blocks, subsystems)
-% Autopositions the whole model
-%
-%   Inputs:
-%       sys     Name of Simulink model or subsystem.
-%
-%   Outputs:
-%       N/A
-%
-%   Side Effects:
-%       Autopositions the whole model
-    for j = 1:length(blocks)
-        pos = get_param(blocks(j), 'Position');
-        width = pos(3) - pos(1);
-        height = pos(4) - pos(2);
-        pos = [0 0 width height];
+function removePositioning(blocks, systems)
+% REMOVEPOSITIONING Forget the layout of all BLOCKS and let Simulink arrange
+% each of the SYSTEMS anew. Each call may give a different diagram.
+    for i = 1:numel(blocks)
+        b = blocks(i);
         try
-            set_param(blocks(j), 'Position', pos)
+            pos = get_param(b, 'Position');
+            set_param(b, 'Position', [0 0 pos(3) - pos(1) pos(4) - pos(2)])
         catch ME
-            if ~ismember(ME.identifier, {'Simulink:Libraries:SetParamDeniedForBlockInsideReadOnlySubsystem'})
-                rethrow(ME)
-            end
+            smokeLog('skip', 'removePositioning', b, ME);
         end
     end
 
-    for j = 1:length(subsystems)
+    for i = 1:numel(systems)
         try
-            Simulink.BlockDiagram.arrangeSystem(subsystems(j), FullLayout='true')
+            Simulink.BlockDiagram.arrangeSystem(systems(i), 'FullLayout', 'true')
         catch ME
-            if ~ismember(ME.identifier, {'glee_util:messages:GenericError'})
-                rethrow(ME)
-            end
-            %some Subsystems, like the compare to constant block pretend to
-            %be a Subsystem, while no changes within are possible.
+            smokeLog('skip', 'removePositioning', systems(i), ME, 'arrangeSystem');
         end
-    end    
+    end
 end

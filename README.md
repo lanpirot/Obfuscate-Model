@@ -20,5 +20,20 @@ Remove all sensitive IP from models with SMOKE!
 
 For more detailed installation and usage instructions, please refer to the [User Guide](doc/SMOKE_UserGuide.pdf).
 
+**Scripting:** `SMOKE(model)` applies all default transformations; `SMOKE(model, 'removeannotations', 1, 'renameblocks', 1)` applies only the listed ones (see `help SMOKE` for all option names).
+
+## What SMOKE could not change
+Simulink refuses some changes (blocks inside locked library links, read-only subsystems, blocks that cannot be resized, parameters whose reset would add or remove ports, ...). SMOKE never aborts because of such an element: it skips it, continues, and prints a summary at the end. Inspect the skipped elements with
+```matlab
+t = smokeLog('report')   % one row per skipped element: rule, element path, parameter, Simulink error
+```
+or take the table directly: `t = SMOKE(model, ...)`. Everything listed there is still in its original state and needs a manual check before the model is shared.
+
+## Tests
+- `src/tests/test_basics.m` builds a small model with one instance of every element SMOKE handles, runs SMOKE, and checks on the raw model file that every secret is gone, that secrets outside the chosen scope are kept, and that the structure is unchanged. Runs in under a minute.
+- `src/tests/test_scalability.m` runs SMOKE over the SLNET corpus, see below.
+
+Run tests without a display (`matlab -nodisplay -batch "test_basics"`), otherwise Simulink opens editor windows and dialogs for models with broken callbacks or missing libraries.
+
 ## Replication 
 For replication, see [the replication directory](https://github.com/lanpirot/SMOKE/tree/master/src/tests).

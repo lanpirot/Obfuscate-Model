@@ -1,32 +1,14 @@
 function renameConstants(blocks)
-
-% RENAMECONSTANTS Give all constants generic values and name.
-    
-    for i = 1:length(blocks)
+% RENAMECONSTANTS Reset the value of all Constant BLOCKS. Numbers, variables,
+% and expressions become -17, string constants "-17". If a constant already
+% is -17, it becomes -19: the value must change (see neutralValue).
+    for i = 1:numel(blocks)
+        b = blocks(i);
         try
-            val = get_param(blocks(i), 'Value');
-            isNaN = isnan(str2double(val));
-        
-            set_param(blocks(i), 'Name', ['Constant' num2str(blocks(i))]);
-            if ~isNaN
-                set_param(blocks(i), 'Value', '-17');
-            elseif ischar('val')
-                % Constant is a string
-                set_param(blocks(i), 'Value', '-17');
-                set_param(blocks(i), 'OutDataTypeStr', 'char');
-                try
-                    set_param(blocks(i), 'Value', '-17randText-17');
-                catch
-                end
-                %set_param(blocks(i), 'OutDataTypeStr', 'Inherit: Inherit from ''Constant value''');                
-                % TODO: Should the workspace/data dictionary variable also be renamed?
-            else
-                disp(1)
-            end
+            value = get_param(b, 'Value');
+            set_param(b, 'Value', neutralValue(value));
         catch ME
-            if ~ismember(ME.identifier, {'Simulink:Commands:Promote_Parameter_InvalidSet' 'Simulink:SampleTime:InvTsParamSetting_Vector' 'Simulink:Parameters:InvParamSetting' 'Simulink:Libraries:SetParamDeniedForBlockInsideReadOnlySubsystem'})
-                rethrow(ME)
-            end
+            smokeLog('skip', 'renameConstants', b, ME);
         end
     end
 end

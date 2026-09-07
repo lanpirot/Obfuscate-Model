@@ -1,24 +1,31 @@
 function removeImplementation(sys)
-% REMOVEIMPLEMENTATION Clear system of implementation blocks. Keep interface
-% blocks.
-%currently this function is not called. It would not work as is: the
-%surrounding SubSystems of the "interface" will get deleted, as well.
+% REMOVEIMPLEMENTATION Delete every block and line directly inside SYS, except
+% the interface blocks (Inport, Outport, TriggerPort, EnablePort, ActionPort,
+% ResetPort). Nested subsystems are deleted with their whole content.
 
-    % Remove lines
-    allLines = find_system(sys, 'Searchdepth', 1, 'FollowLinks', 'on', 'LookUnderMasks', 'All', 'MatchFilter', @Simulink.match.allVariants, 'FindAll', 'on', 'Type', 'line');
-    delete_line(allLines);
-    
-    blocks = find_system(sys, 'SearchDepth', '1', 'MatchFilter', @Simulink.match.allVariants, 'type', 'block');
-    
-    % Blocks to keep
-    inports = find_system(sys, 'SearchDepth', '1', 'FindAll', 'on', 'MatchFilter', @Simulink.match.allVariants, 'type', 'block', 'BlockType', 'Inport');
-    outports = find_system(sys, 'SearchDepth', '1', 'FindAll', 'on', 'MatchFilter', @Simulink.match.allVariants, 'type', 'block', 'BlockType', 'Outport');
-    triggers = find_system(sys, 'SearchDepth', '1', 'FindAll', 'on', 'MatchFilter', @Simulink.match.allVariants, 'type', 'block', 'BlockType', 'TriggerPort');
-    
-    
-    blocks(blocks==get_param(sys, 'Handle')) = []; % Remove sys from list, faster maybe: blocks[1] = [];
-    blocks = setdiff(blocks, inports);
-    blocks = setdiff(blocks, outports);
-    blocks = setdiff(blocks, triggers);
-    delete_block(blocks);
+    common = {'SearchDepth', 1, 'LookUnderMasks', 'all', 'MatchFilter', @Simulink.match.allVariants, 'FindAll', 'on'};
+    sys = get_param(sys, 'Handle');
+
+    lines = find_system(sys, common{:}, 'Type', 'line');
+    for i = 1:numel(lines)
+        try
+            delete_line(lines(i));
+        catch ME
+            smokeLog('skip', 'removeImplementation', lines(i), ME);
+        end
+    end
+
+    blocks = find_system(sys, common{:}, 'Type', 'block');
+    blocks = blocks(blocks ~= sys);
+    keep = {'Inport', 'Outport', 'TriggerPort', 'EnablePort', 'ActionPort', 'ResetPort'};
+    for i = 1:numel(blocks)
+        try
+            if ismember(get_param(blocks(i), 'BlockType'), keep)
+                continue
+            end
+            delete_block(blocks(i));
+        catch ME
+            smokeLog('skip', 'removeImplementation', blocks(i), ME);
+        end
+    end
 end

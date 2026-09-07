@@ -1,36 +1,34 @@
 function removeSignalNames(lines, blocks)
-% REMOVESIGNALNAMES Remove signal names and turn off signal propagation.
-% NOTE: This does not work for signals of buses.
-%
-%   Inputs:
-%       sys     Name of Simulink model or subsystem.
-%
-%   Outputs:
-%       N/A
-%
-%   Side Effects:
-%       Removes names and disables signal propagation.
+% REMOVESIGNALNAMES Clear the names of all LINES, and switch off signal label
+% propagation on the output ports of all BLOCKS.
+% Note: names of bus element signals cannot be cleared this way.
 
-    for i = 1:length(lines)
+    for i = 1:numel(lines)
+        l = lines(i);
         try
-            set(lines(i), 'SignalPropagation', 'off');
-            set(lines(i), 'Name', '');
-        catch
-            % Bus signal
+            if ~isempty(get_param(l, 'Name'))
+                set_param(l, 'Name', '');
+            end
+        catch ME
+            smokeLog('skip', 'removeSignalNames', l, ME);
         end
     end
 
-    % Ports
-    for j = 1:length(blocks)
-         pc = get_param(gcb, 'PortHandles');
-         for k = 1:length(pc.Outport)
-             try
-                set_param(pc.Outport(k), 'ShowPropagatedSignals', 'off')
-             catch me
-                 if ~strcmp(me.identifier, 'Simulink:Signals:NoPropSigLabThroughBlock') && ~strcmp(me.identifier, 'Simulink:Libraries:LockViolation')
-                     rethrow(me)
-                 end
-             end
-         end
+    for i = 1:numel(blocks)
+        b = blocks(i);
+        try
+            outports = get_param(b, 'PortHandles').Outport;
+        catch
+            continue
+        end
+        for k = 1:numel(outports)
+            try
+                if strcmp(get_param(outports(k), 'ShowPropagatedSignals'), 'on')
+                    set_param(outports(k), 'ShowPropagatedSignals', 'off')
+                end
+            catch ME
+                smokeLog('skip', 'removeSignalNames', b, ME, sprintf('outport %d', k));
+            end
+        end
     end
 end

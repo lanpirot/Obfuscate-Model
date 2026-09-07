@@ -1,18 +1,18 @@
 function removeMasks(blocks)
-% REMOVEMASKS Clear the MaskDisplay parameter on blocks. Masks are commonly
-% used for custom blocks, which the user may not want to reveal.
-
-    %mask_params = {'MaskDisplay' 'Mask' 'MaskInitialization' 'MaskCallbackString'};
-    for i = 1:length(blocks)
+% REMOVEMASKS Delete the masks of all masked BLOCKS, including mask code,
+% mask parameters, and mask icons.
+    for i = 1:numel(blocks)
+        b = blocks(i);
         try
-            m = Simulink.Mask.get(blocks(i));
-            m.delete();
-            %set_param(blocks(i), mask_params{m}, '');
-        catch ME
-            %if ~ismember(ME.identifier, {'Simulink:SampleTime:InvTsParamSetting_No_Continuous' 'SimulinkBlock:Foundation:BadSetParamValue' 'Simulink:Masking:CannotMaskReferenceBlock' 'Simulink:Commands:InvSimulinkObjectName' 'Simulink:Masking:CannotMaskInportShadowBlock' 'Simulink:Masking:InvalidParameterSettingWithPrompt' 'Simulink:Masking:Bad_Init_Commands' 'Simulink:blocks:SystemBlockInvalidModification' 'Simulink:Libraries:RefViolation'})
-            if ~ismember(ME.identifier, {'Simulink:Masking:Methods_Invalid_InputTypes' 'Simulink:Masking:CannotExecuteMethodOnLinkBlk' 'Simulink:blocks:SystemBlockInvalidModification' 'Simulink:blocks:SubsysErrFcnMsg'})
-                rethrow(ME)
+            if ~strcmp(get_param(b, 'Mask'), 'on')
+                continue
             end
+            m = Simulink.Mask.get(b);
+            if ~isempty(m)
+                m.delete();
+            end
+        catch ME
+            smokeLog('skip', 'removeMasks', b, ME);
         end
     end
 end

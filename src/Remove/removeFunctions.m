@@ -1,16 +1,19 @@
 function removeFunctions(blocks)
-% Removes MATLAB function Blocks' innards
-
-    for i = 1:length(blocks)
+% REMOVEFUNCTIONS Remove the code of all MATLAB Function blocks among BLOCKS.
+    for i = 1:numel(blocks)
+        b = blocks(i);
         try
-        config = get_param(blocks(i), "MATLABFunctionConfiguration");
-        config.FunctionScript = '0';
-        catch ME
-            if ~ismember(ME.identifier, {'Simulink:Commands:ParamUnknown' 'Simulink:blocks:LockedMATLABFunction' 'Simulink:blocks:LinkedMATLABFunction' 'Simulink:blocks:SubsysErrFcnMsg'})
-                rethrow(ME)
+            if ~strcmp(get_param(b, 'SFBlockType'), 'MATLAB Function')
+                continue
             end
+        catch
+            continue % not a Stateflow based block
+        end
+        try
+            config = get_param(b, 'MATLABFunctionConfiguration');
+            config.FunctionScript = '0';
+        catch ME
+            smokeLog('skip', 'removeFunctions', b, ME);
         end
     end
 end
-
-

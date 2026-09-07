@@ -1,27 +1,22 @@
 function removeAnnotations(annotations, blocks)
-% REMOVEANNOTATIONS Remove all annotations from the model. 
-% Removes any text, area, or image annotations.
-    for a = 1:length(annotations)
+% REMOVEANNOTATIONS Delete all text, area, and image ANNOTATIONS, and clear the
+% block annotations (AttributesFormatString) of all BLOCKS.
+    for i = 1:numel(annotations)
         try
-            delete(annotations(a))
-        catch ME %in unlockable subsystems, annotations cannot be deleted
-            if ~ismember(ME.identifier, {'Simulink:Libraries:RefModificationViolation' 'Simulink:blocks:SubsysWriteProtected'})
-                rethrow(ME)
-            end
+            delete(annotations(i))
+        catch ME
+            smokeLog('skip', 'removeAnnotations', annotations(i), ME);
         end
     end
 
-    % Remove block annotations
-    for i = 1:length(blocks)
-        if strcmp(get_param(blocks(i), 'AttributesFormatString'),'')
-            continue
-        end
+    for i = 1:numel(blocks)
+        b = blocks(i);
         try
-            set_param(blocks(i), 'AttributesFormatString', '');
-        catch ME %in unlockable subsystems, annotations cannot be deleted
-            if ~ismember(ME.identifier, {'Simulink:Libraries:LockViolation' 'Simulink:Libraries:SetParamDeniedForBlockInsideReadOnlySubsystem'})
-                rethrow(ME)
+            if ~isempty(get_param(b, 'AttributesFormatString'))
+                set_param(b, 'AttributesFormatString', '');
             end
+        catch ME
+            smokeLog('skip', 'removeAnnotations', b, ME, 'AttributesFormatString');
         end
     end
 end

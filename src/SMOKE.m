@@ -15,8 +15,13 @@ function report = SMOKE(sys, varargin)
 %   printed at the end; smokeLog('report') lists every skipped element so
 %   that the user can inspect what is still untouched.
 %
-%   Options. When no option is given, all of them are on except those marked
-%   (off). When at least one option is given, all others are off.
+%   Options. All of them are on by default, except those marked (off):
+%   removemodelreferences, removeImplement, squashSubsystems. A
+%   given option overrides the default. 'all', 0 switches everything off as a
+%   baseline, so that single transformations can be selected:
+%       SMOKE(m)                              everything
+%       SMOKE(m, 'renameblocks', 0)           everything but block names
+%       SMOKE(m, 'all', 0, 'renameblocks', 1) block names only
 %
 %   Remove:  removemasks, removelibrarylinks, removemodelreferences (off),
 %            removesignalnames, removedocblocks, removeannotations,
@@ -38,7 +43,7 @@ function report = SMOKE(sys, varargin)
     if numel(varargin) == 1 && iscell(varargin{1})
         varargin = varargin{1}; % SMOKE(sys, {name, value, ...}) is accepted too
     end
-    default = double(isempty(varargin));
+    baseline = logical(getInput('all', varargin, true));
     names = {'removemasks', 'removelibrarylinks', 'removemodelreferences', 'removesignalnames', ...
         'removedocblocks', 'removeannotations', 'removedescriptions', 'removeblockcallbacks', ...
         'removemodelinformation', 'customdatatypes', 'removecolorblocks', 'removecolorannotations', ...
@@ -49,12 +54,12 @@ function report = SMOKE(sys, varargin)
         'hidecontentpreview', 'hideportlabels', ...
         'sfcharts', 'sfports', 'sfevents', 'sfstates', 'sfboxes', 'sffunctions', 'sflabels', ...
         'recursemodels', 'completeModel', 'recurseSubsystems'};
-    alwaysOff = {'removemodelreferences', 'removeImplement'};
+    alwaysOff = {'removemodelreferences', 'removeImplement', 'squashSubsystems'};
     opt = struct();
     for i = 1:numel(names)
-        d = default;
+        d = baseline;
         if ismember(names{i}, alwaysOff)
-            d = 0;
+            d = false;
         end
         opt.(names{i}) = logical(getInput(names{i}, varargin, d));
     end
@@ -177,7 +182,7 @@ function report = SMOKE(sys, varargin)
     end
 
     if opt.customdatatypes
-        removeCustomDataTypes(els.ofType('Inport'))
+        removeCustomDataTypes(els.blocks)
     end
 
     if opt.hidecontentpreview

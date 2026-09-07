@@ -1,7 +1,9 @@
 function renameStateflow(startSys, depth, opt)
 % RENAMESTATEFLOW Rename the Stateflow objects of all charts inside STARTSYS
 % (down to DEPTH levels) to generic names. OPT selects what to rename:
-% sfcharts, sfports, sfevents, sfboxes, sfstates, sffunctions, sflabels.
+% sfcharts, sfports (all chart data and messages), sfevents, sfboxes,
+% sfstates, sffunctions, sflabels. MATLAB Function blocks are Stateflow
+% charts too, but their data follow their script; see removeFunctions.
 
     scopePath = getfullname(startSys);
     model = sfroot().find('-isa', 'Simulink.BlockDiagram', '-and', 'Name', bdroot(scopePath));
@@ -12,7 +14,7 @@ function renameStateflow(startSys, depth, opt)
 
     for i = 1:length(charts)
         c = charts(i);
-        if ~inScope(c.Path, scopePath, depth)
+        if ~inScope(c.Path, scopePath, depth) || isa(c, 'Stateflow.EMChart')
             continue
         end
 
@@ -25,8 +27,12 @@ function renameStateflow(startSys, depth, opt)
         end
 
         if opt.sfports
-            renameAll(c.find('-isa', 'Stateflow.Data', 'Scope', 'Input'), 'Input');
-            renameAll(c.find('-isa', 'Stateflow.Data', 'Scope', 'Output'), 'Output');
+            data = c.find('-isa', 'Stateflow.Data');
+            scopes = arrayfun(@(d) char(d.Scope), data, 'UniformOutput', false);
+            renameAll(data(strcmp(scopes, 'Input')), 'Input');
+            renameAll(data(strcmp(scopes, 'Output')), 'Output');
+            renameAll(data(~ismember(scopes, {'Input', 'Output'})), 'Data'); % local, parameter, constant, ...
+            renameAll(c.find('-isa', 'Stateflow.Message'), 'Message');
         end
 
         if opt.sfevents
